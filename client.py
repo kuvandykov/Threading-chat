@@ -3,16 +3,18 @@ import threading
 
 
 def receive_msg():
-    try:
-        while True:
+    while True:
+        try:
             data = client_socket.recv(1024)
             print(data.decode())
-    except ConnectionAbortedError:
-        pass
+            if data.decode() == '$SERVER_OFFLINE$':
+                break
+        except ConnectionAbortedError:
+            break
 
 
 def client_send():
-    thread_rcv = threading.Thread(target=receive_msg)
+    thread_rcv = threading.Thread(target=receive_msg, daemon=True)
     thread_rcv.start()
     try:
         while True:
@@ -21,11 +23,13 @@ def client_send():
             if msg == '$Exit':
                 break
     except KeyboardInterrupt:
+        client_socket.send('$Exit'.encode())
+    except BrokenPipeError:
         pass
 
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect(('localhost', 11719))
+client_socket.connect(('localhost', 11798))
 print(client_socket.recv(1024).decode())
 client_socket.send(input().encode())
 
